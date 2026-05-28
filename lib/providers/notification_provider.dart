@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../core/utils/error_utils.dart';
 import '../data/models/notification_model.dart';
 import '../data/services/notification_service.dart';
 
@@ -22,7 +23,7 @@ class NotificationProvider extends ChangeNotifier {
     try {
       _items = await _service.listNotifications();
     } catch (e) {
-      _error = e.toString();
+      _error = formatError(e);
     } finally {
       _loading = false;
       notifyListeners();
@@ -37,6 +38,9 @@ class NotificationProvider extends ChangeNotifier {
         _items[idx] = updated;
         notifyListeners();
       }
-    } catch (_) {}
+    } catch (e) {
+      _error = formatError(e);
+      notifyListeners();
+    }
   }
 }

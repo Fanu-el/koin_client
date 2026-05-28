@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../ui/screens/auth/login_screen.dart';
@@ -16,14 +17,17 @@ import '../../ui/screens/chat/chat_list_screen.dart';
 import '../../ui/screens/chat/chat_screen.dart';
 import '../../ui/screens/profile/profile_screen.dart';
 import '../../ui/screens/home/shell_screen.dart';
+import '../../ui/screens/onboarding/onboarding_screen.dart';
 
 // Route name constants
 class AppRoutes {
   static const splash = '/';
-  static const login = '/login';
-  static const register = '/register';
-  static const verifyEmail = '/verify-email';
-  static const forgotPassword = '/forgot-password';
+  static const onboarding = '/onboarding';
+  static const auth = '/auth';
+  static const login = '/auth/login';
+  static const register = '/auth/register';
+  static const verifyEmail = '/auth/verify-email';
+  static const forgotPassword = '/auth/forgot-password';
   static const home = '/home';
   static const dashboard = '/home/dashboard';
   static const transactions = '/home/transactions';
@@ -39,7 +43,7 @@ GoRouter createRouter(AuthProvider authProvider) {
   return GoRouter(
     refreshListenable: authProvider,
     initialLocation: AppRoutes.splash,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final status = authProvider.status;
       final loc = state.matchedLocation;
 
@@ -48,14 +52,28 @@ GoRouter createRouter(AuthProvider authProvider) {
         return loc == AppRoutes.splash ? null : AppRoutes.splash;
       }
 
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+
       final isAuth = status == AuthStatus.authenticated;
       final isPending = status == AuthStatus.pendingVerification;
 
-      // Once resolved, redirect away from splash
+      // Once initialized, redirect away from splash
       if (loc == AppRoutes.splash) {
+        if (!onboardingComplete) return AppRoutes.onboarding;
         if (isAuth) return AppRoutes.dashboard;
         if (isPending) return AppRoutes.verifyEmail;
         return AppRoutes.login;
+      }
+
+      // Handle onboarding redirect
+      if (loc == AppRoutes.onboarding) {
+        if (onboardingComplete) {
+          if (isAuth) return AppRoutes.dashboard;
+          if (isPending) return AppRoutes.verifyEmail;
+          return AppRoutes.login;
+        }
+        return null;
       }
 
       final isOnAuth = loc == AppRoutes.login ||
@@ -64,6 +82,7 @@ GoRouter createRouter(AuthProvider authProvider) {
       final isOnVerify = loc == AppRoutes.verifyEmail;
       final isOnHome = loc.startsWith('/home') || loc == AppRoutes.profile;
 
+      if (!onboardingComplete && isOnAuth) return AppRoutes.onboarding;
       if (isAuth && (isOnAuth || isOnVerify)) return AppRoutes.dashboard;
       if (isPending && !isOnVerify) return AppRoutes.verifyEmail;
       if (!isAuth && !isPending && isOnHome) return AppRoutes.login;
@@ -77,7 +96,17 @@ GoRouter createRouter(AuthProvider authProvider) {
         builder: (_, __) => const _SplashScreen(),
       ),
 
+      // ── Onboarding ───────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (_, __) => const OnboardingScreen(),
+      ),
+
       // ── Auth routes ──────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.auth,
+        redirect: (_, __) => AppRoutes.login,
+      ),
       GoRoute(
         path: AppRoutes.login,
         builder: (_, __) => const LoginScreen(),

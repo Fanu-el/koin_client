@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../core/constants/app_constants.dart';
 import 'token_service.dart';
@@ -107,12 +108,19 @@ class ApiClient {
     Map<String, dynamic>? queryParams,
     bool auth = true,
   }) async {
+    final uri = _uri(path, queryParams);
+    final headers = await _headers(auth: auth);
+    debugPrint('ApiClient: GET $uri auth=$auth headers=$headers');
     return _withRefreshRetry(() async {
       final response = await _httpClient
-          .get(_uri(path, queryParams), headers: await _headers(auth: auth))
-          .timeout(AppConstants.receiveTimeout);
+          .get(uri, headers: headers)
+          .timeout(
+            AppConstants.receiveTimeout,
+            onTimeout: () => throw ApiException('Request timed out after ${AppConstants.receiveTimeout.inSeconds} seconds'),
+          );
+      debugPrint('ApiClient: GET response ${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
       return _parse(response);
-    });
+    }, refreshOnUnauthorized: auth);
   }
 
   Future<dynamic> post(
@@ -122,20 +130,27 @@ class ApiClient {
     String? customHeader,
     String? customHeaderValue,
   }) async {
+    final uri = _uri(path);
+    final headers = await _headers(auth: auth);
+    if (customHeader != null && customHeaderValue != null) {
+      headers[customHeader] = customHeaderValue;
+    }
+    final requestBody = body != null ? jsonEncode(body) : null;
+    debugPrint('ApiClient: POST $uri auth=$auth headers=$headers body=$requestBody');
     return _withRefreshRetry(() async {
-      final headers = await _headers(auth: auth);
-      if (customHeader != null && customHeaderValue != null) {
-        headers[customHeader] = customHeaderValue;
-      }
       final response = await _httpClient
           .post(
-            _uri(path),
+            uri,
             headers: headers,
-            body: body != null ? jsonEncode(body) : null,
+            body: requestBody,
           )
-          .timeout(AppConstants.receiveTimeout);
+          .timeout(
+            AppConstants.receiveTimeout,
+            onTimeout: () => throw ApiException('Request timed out after ${AppConstants.receiveTimeout.inSeconds} seconds'),
+          );
+      debugPrint('ApiClient: POST response ${response.statusCode} body=${utf8.decode(response.bodyBytes)}');
       return _parse(response);
-    });
+    }, refreshOnUnauthorized: auth);
   }
 
   Future<dynamic> patch(
@@ -150,18 +165,24 @@ class ApiClient {
             headers: await _headers(auth: auth),
             body: body != null ? jsonEncode(body) : null,
           )
-          .timeout(AppConstants.receiveTimeout);
+          .timeout(
+            AppConstants.receiveTimeout,
+            onTimeout: () => throw ApiException('Request timed out after ${AppConstants.receiveTimeout.inSeconds} seconds'),
+          );
       return _parse(response);
-    });
+    }, refreshOnUnauthorized: auth);
   }
 
   Future<dynamic> delete(String path, {bool auth = true}) async {
     return _withRefreshRetry(() async {
       final response = await _httpClient
           .delete(_uri(path), headers: await _headers(auth: auth))
-          .timeout(AppConstants.receiveTimeout);
+          .timeout(
+            AppConstants.receiveTimeout,
+            onTimeout: () => throw ApiException('Request timed out after ${AppConstants.receiveTimeout.inSeconds} seconds'),
+          );
       return _parse(response);
-    });
+    }, refreshOnUnauthorized: auth);
   }
 
   /// Returns a raw stream for SSE endpoints.
@@ -182,11 +203,14 @@ class ApiClient {
   }
 
   // Helper to automatically attempt a single token refresh on 401 responses.
-  Future<dynamic> _withRefreshRetry(Future<dynamic> Function() fn) async {
+  Future<dynamic> _withRefreshRetry(
+    Future<dynamic> Function() fn, {
+    bool refreshOnUnauthorized = true,
+  }) async {
     try {
       return await fn();
     } on ApiException catch (e) {
-      if (e.statusCode == 401 && _refreshHandler != null) {
+      if (e.statusCode == 401 && refreshOnUnauthorized && _refreshHandler != null) {
         _refreshing ??= _refreshHandler!().then((ok) => ok).whenComplete(() {
           _refreshing = null;
         });
@@ -196,6 +220,10 @@ class ApiClient {
         }
       }
       rethrow;
+    } on TimeoutException catch (_) {
+      throw const ApiException('Request timed out. Please check your internet connection and try again.');
+    } on SocketException catch (_) {
+      throw const ApiException('Unable to reach the server. Please check your internet connection.');
     }
   }
 }
