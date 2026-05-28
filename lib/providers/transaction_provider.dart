@@ -1,11 +1,13 @@
 import 'package:cached_query/cached_query.dart';
 import 'package:flutter/foundation.dart';
+import '../core/utils/error_utils.dart';
 import '../data/models/transaction_model.dart';
 import '../data/services/query_keys.dart';
 import '../data/services/transaction_service.dart';
 
 class TransactionProvider extends ChangeNotifier {
   final TransactionService _service;
+  String? _operationError;
 
   // One InfiniteQuery per type filter (null = all, INCOME, EXPENSE)
   final Map<String, InfiniteQuery<List<TransactionModel>, int>> _queries = {};
@@ -51,8 +53,9 @@ class TransactionProvider extends ChangeNotifier {
   bool loadingFor(String? type) =>
       _queryFor(type).state.status == QueryStatus.loading;
 
-  String? errorFor(String? type) =>
-      _queryFor(type).state.error?.toString();
+  String? errorFor(String? type) {
+    return _operationError ?? _queryFor(type).state.error?.toString();
+  }
 
   bool hasMoreFor(String? type) =>
       _queryFor(type).hasReachedMax() != true;
@@ -75,6 +78,7 @@ class TransactionProvider extends ChangeNotifier {
     String? note,
     required DateTime date,
   }) async {
+    _operationError = null;
     try {
       await _service.createTransaction(
         type: type,
@@ -92,12 +96,14 @@ class TransactionProvider extends ChangeNotifier {
       ]);
       return true;
     } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }
   }
 
   Future<bool> delete(String id) async {
+    _operationError = null;
     try {
       await _service.deleteTransaction(id);
       _invalidateAll();
@@ -108,6 +114,7 @@ class TransactionProvider extends ChangeNotifier {
       ]);
       return true;
     } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }
