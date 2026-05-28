@@ -8,7 +8,6 @@ import '../../../providers/savings_goal_provider.dart';
 import '../../widgets/app_dialogs.dart';
 import '../../widgets/app_notifications.dart';
 import '../../widgets/app_loader.dart';
-import '../../widgets/app_notifications.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/notifications_action.dart';
 

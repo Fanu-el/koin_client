@@ -29,11 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final email = _emailCtrl.text.trim();
     final auth = context.read<AuthProvider>();
+    debugPrint('LoginScreen: submitting login for email=$email');
     final ok = await auth.login(
-      email: _emailCtrl.text.trim(),
+      email: email,
       password: _passwordCtrl.text,
     );
+    debugPrint('LoginScreen: login result ok=$ok error=${auth.error}');
     if (!ok && mounted) {
       showErrorSnackBar(context, auth.error ?? 'Login failed');
     }
