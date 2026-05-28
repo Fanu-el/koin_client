@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../data/models/chat_model.dart';
 import '../../../providers/chat_provider.dart';
 import '../../widgets/app_dialogs.dart';
+import '../../widgets/app_notifications.dart';
 import '../../widgets/notifications_action.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -144,7 +145,10 @@ class _ChatScreenState extends State<ChatScreen> {
       initialValue: session.title,
     );
     if (newTitle != null && newTitle.isNotEmpty && context.mounted) {
-      provider.renameSession(session.id, newTitle);
+      final success = await provider.renameSession(session.id, newTitle);
+      if (!success && context.mounted) {
+        showErrorSnackBar(context, provider.error ?? 'Failed to rename chat');
+      }
     }
   }
 }

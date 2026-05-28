@@ -7,6 +7,7 @@ import '../../../core/router/app_router.dart';
 import '../../../providers/chat_provider.dart';
 import '../../widgets/app_dialogs.dart';
 import '../../widgets/app_loader.dart';
+import '../../widgets/app_notifications.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/notifications_action.dart';
 
@@ -138,7 +139,10 @@ class ChatListScreen extends StatelessWidget {
       initialValue: currentTitle,
     );
     if (newTitle != null && newTitle.isNotEmpty && context.mounted) {
-      context.read<ChatProvider>().renameSession(id, newTitle);
+      final success = await context.read<ChatProvider>().renameSession(id, newTitle);
+      if (!success && context.mounted) {
+        showErrorSnackBar(context, context.read<ChatProvider>().error ?? 'Failed to rename chat');
+      }
     }
   }
 
