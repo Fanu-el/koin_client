@@ -1,19 +1,47 @@
 name: koin_client
-description: "A new Flutter project."
+description: "Koin — Personal Finance Advisor"
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.0-113.1.beta
+  sdk: ^3.5.0
 
 dependencies:
   flutter:
     sdk: flutter
 
+  # HTTP & networking
+  http: ^1.2.2
+  # Secure token storage
+  flutter_secure_storage: ^9.2.2
+  # State management
+  provider: ^6.1.2
+  # Routing
+  go_router: ^14.6.3
+  # API caching
+  cached_query: ^2.0.0
+  cached_query_flutter: ^2.0.0
+  # Charts
+  fl_chart: ^0.69.0
+  # Date formatting
+  intl: ^0.19.0
+  # Markdown rendering for AI responses
+  flutter_markdown: ^0.7.7+1
+  # Icons
+  cupertino_icons: ^1.0.8
+  # Shared preferences (theme preference)
+  shared_preferences: ^2.3.3
+  # .env file support
+  flutter_dotenv: ^5.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
+    - assets/images/logos/
