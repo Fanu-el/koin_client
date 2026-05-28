@@ -1,11 +1,13 @@
 import 'package:cached_query/cached_query.dart';
 import 'package:flutter/foundation.dart';
+import '../core/utils/error_utils.dart';
 import '../data/models/budget_model.dart';
 import '../data/services/budget_service.dart';
 import '../data/services/query_keys.dart';
 
 class BudgetProvider extends ChangeNotifier {
   final BudgetService _service;
+  String? _operationError;
 
   late final Query<List<BudgetModel>> budgetsQuery;
   late final Query<List<BudgetStatusItem>> statusQuery;
@@ -35,6 +37,7 @@ class BudgetProvider extends ChangeNotifier {
       budgetsQuery.state.status == QueryStatus.loading ||
       statusQuery.state.status == QueryStatus.loading;
   String? get error =>
+      _operationError ??
       budgetsQuery.state.error?.toString() ??
       statusQuery.state.error?.toString();
 
@@ -52,6 +55,7 @@ class BudgetProvider extends ChangeNotifier {
     required String period,
     required double amountLimit,
   }) async {
+    _operationError = null;
     try {
       await _service.createBudget(
         category: category,
@@ -61,31 +65,36 @@ class BudgetProvider extends ChangeNotifier {
       _invalidate();
       await load(force: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }
   }
 
   Future<bool> update(String id, double amountLimit) async {
+    _operationError = null;
     try {
       await _service.updateBudget(id, amountLimit);
       _invalidate();
       await load(force: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }
   }
 
   Future<bool> delete(String id) async {
+    _operationError = null;
     try {
       await _service.deleteBudget(id);
       _invalidate();
       await load(force: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }

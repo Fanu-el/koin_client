@@ -43,32 +43,82 @@ Future<String?> showTextInputDialog(
   TextInputType keyboardType = TextInputType.text,
   int maxLines = 1,
 }) {
-  final controller = TextEditingController(text: initialValue);
-
   return showDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(title),
+    builder: (context) => _TextInputDialog(
+      title: title,
+      hintText: hintText,
+      initialValue: initialValue,
+      confirmLabel: confirmLabel,
+      cancelLabel: cancelLabel,
+      autofocus: autofocus,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+    ),
+  );
+}
+
+class _TextInputDialog extends StatefulWidget {
+  final String title;
+  final String hintText;
+  final String initialValue;
+  final String confirmLabel;
+  final String cancelLabel;
+  final bool autofocus;
+  final TextInputType keyboardType;
+  final int maxLines;
+
+  const _TextInputDialog({
+    required this.title,
+    required this.hintText,
+    required this.initialValue,
+    required this.confirmLabel,
+    required this.cancelLabel,
+    required this.autofocus,
+    required this.keyboardType,
+    required this.maxLines,
+  });
+
+  @override
+  State<_TextInputDialog> createState() => _TextInputDialogState();
+}
+
+class _TextInputDialogState extends State<_TextInputDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
       content: TextField(
-        controller: controller,
-        autofocus: autofocus,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        decoration: InputDecoration(hintText: hintText),
+        controller: _controller,
+        autofocus: widget.autofocus,
+        keyboardType: widget.keyboardType,
+        maxLines: widget.maxLines,
+        decoration: InputDecoration(hintText: widget.hintText),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, null),
-          child: Text(cancelLabel),
+          child: Text(widget.cancelLabel),
         ),
         TextButton(
-          onPressed: () => Navigator.pop(context, controller.text.trim()),
-          child: Text(confirmLabel),
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: Text(widget.confirmLabel),
         ),
       ],
-    ),
-  ).then((value) {
-    controller.dispose();
-    return value;
-  });
+    );
+  }
 }
