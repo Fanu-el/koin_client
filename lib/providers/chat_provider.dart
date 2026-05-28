@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cached_query/cached_query.dart';
 import 'package:flutter/foundation.dart';
+import '../core/utils/error_utils.dart';
 import '../data/models/chat_model.dart';
 import '../data/services/chat_service.dart';
 import '../data/services/query_keys.dart';
@@ -54,6 +57,7 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<ChatSessionModel?> createSession({String? title}) async {
+    _error = null;
     try {
       final session = await _service.createSession(title: title);
       CachedQuery.instance.invalidateCache(key: QueryKeys.chatSessions());
@@ -61,7 +65,7 @@ class ChatProvider extends ChangeNotifier {
       notifyListeners();
       return session;
     } catch (e) {
-      _error = e.toString();
+      _error = formatError(e);
       notifyListeners();
       return null;
     }
@@ -88,7 +92,7 @@ class ChatProvider extends ChangeNotifier {
       final result = await q.result;
       _messages = result.data ?? [];
     } catch (e) {
-      _error = e.toString();
+      _error = formatError(e);
     } finally {
       _loadingMessages = false;
       notifyListeners();
@@ -124,7 +128,7 @@ class ChatProvider extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = formatError(e);
       _streamingContent = null;
       notifyListeners();
     } finally {
@@ -133,21 +137,33 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> renameSession(String id, String title) async {
+  Future<bool> renameSession(String id, String title) async {
+    _error = null;
+    notifyListeners();
+
     try {
-      await _service.renameSession(id, title);
+      final renamed = await _service.renameSession(id, title);
       CachedQuery.instance.invalidateCache(key: QueryKeys.chatSessions());
-      await sessionsQuery.refetch();
       if (_activeSession?.id == id) {
         _activeSession = sessions.firstWhere(
           (s) => s.id == id,
-          orElse: () => _activeSession!,
+          orElse: () => renamed,
         );
       }
       notifyListeners();
+      // Refresh sessions in the background without blocking UI.
+      () async {
+        try {
+          await sessionsQuery.refetch();
+        } catch (_) {
+          // Ignore background refresh failures; error already handled by rename.
+        }
+      }();
+      return true;
     } catch (e) {
-      _error = e.toString();
+      _error = formatError(e);
       notifyListeners();
+      return false;
     }
   }
 
@@ -163,7 +179,7 @@ class ChatProvider extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = formatError(e);
       notifyListeners();
     }
   }

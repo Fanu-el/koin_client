@@ -9,7 +9,7 @@ class TokenService {
   TokenService({FlutterSecureStorage? storage})
       : _storage = storage ??
             const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+              aOptions: AndroidOptions(encryptedSharedPreferences: false),
             );
 
   Future<void> saveTokens({
@@ -17,8 +17,12 @@ class TokenService {
     required String refreshToken,
   }) async {
     await Future.wait([
-      _storage.write(key: AppConstants.accessTokenKey, value: accessToken),
-      _storage.write(key: AppConstants.refreshTokenKey, value: refreshToken),
+      _storage
+          .write(key: AppConstants.accessTokenKey, value: accessToken)
+          .timeout(const Duration(seconds: 10)),
+      _storage
+          .write(key: AppConstants.refreshTokenKey, value: refreshToken)
+          .timeout(const Duration(seconds: 10)),
     ]);
   }
 
