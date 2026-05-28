@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
+import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/services/api_client.dart';
@@ -26,6 +27,8 @@ import 'providers/notification_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
+  debugPrint('Loaded .env API_BASE_URL=${dotenv.env['API_BASE_URL']}');
+  debugPrint('Using API base URL: ${AppConstants.baseUrl}');
 
   // Configure cached_query global defaults
   CachedQuery.instance.configFlutter(

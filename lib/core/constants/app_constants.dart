@@ -10,6 +10,6 @@ class AppConstants {
   static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user_data';
 
-  static const Duration connectTimeout = Duration(seconds: 15);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 60);
 }

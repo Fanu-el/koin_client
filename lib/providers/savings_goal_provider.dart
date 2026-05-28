@@ -1,11 +1,13 @@
 import 'package:cached_query/cached_query.dart';
 import 'package:flutter/foundation.dart';
+import '../core/utils/error_utils.dart';
 import '../data/models/savings_goal_model.dart';
 import '../data/services/query_keys.dart';
 import '../data/services/savings_goal_service.dart';
 
 class SavingsGoalProvider extends ChangeNotifier {
   final SavingsGoalService _service;
+  String? _operationError;
 
   late final Query<List<SavingsGoalModel>> goalsQuery;
 
@@ -24,7 +26,7 @@ class SavingsGoalProvider extends ChangeNotifier {
   List<SavingsGoalModel> get activeGoals =>
       goals.where((g) => g.status == SavingsGoalStatus.active).toList();
   bool get loading => goalsQuery.state.status == QueryStatus.loading;
-  String? get error => goalsQuery.state.error?.toString();
+  String? get error => _operationError ?? goalsQuery.state.error?.toString();
 
   Future<void> load({bool force = false}) async {
     if (force) {
@@ -42,6 +44,7 @@ class SavingsGoalProvider extends ChangeNotifier {
     DateTime? targetDate,
     String? description,
   }) async {
+    _operationError = null;
     try {
       await _service.createGoal(
         name: name,
@@ -53,7 +56,8 @@ class SavingsGoalProvider extends ChangeNotifier {
       _invalidate();
       await load(force: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }
@@ -68,6 +72,7 @@ class SavingsGoalProvider extends ChangeNotifier {
     String? description,
     String? status,
   }) async {
+    _operationError = null;
     try {
       await _service.updateGoal(
         id,
@@ -81,19 +86,22 @@ class SavingsGoalProvider extends ChangeNotifier {
       _invalidate();
       await load(force: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }
   }
 
   Future<bool> delete(String id) async {
+    _operationError = null;
     try {
       await _service.deleteGoal(id);
       _invalidate();
       await load(force: true);
       return true;
-    } catch (_) {
+    } catch (e) {
+      _operationError = formatError(e);
       notifyListeners();
       return false;
     }
